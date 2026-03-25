@@ -59,20 +59,19 @@ module.exports = function (io) {
                     cb('Error! Por favor ingresa tu mensaje después del nombre de usuario.');
                 }
             } else {
-                try {
-                    let newMsg = new Chat({
-                        msg: data,
-                        nick: socket.nickname
-                    })
-                    await newMsg.save();
-                } catch (e) {
-                    console.error("Error al guardar mensaje:", e);
-                }
-                
+                let newMsg = new Chat({
+                    msg: data,
+                    nick: socket.nickname
+                });
+
+                // Enviamos el mensaje de inmediato a todos los usuarios
                 io.sockets.emit('Nuevo mensaje', {
                     msg: data,
                     nick: socket.nickname
                 });
+
+                // Guardamos en la base de datos en segundo plano sin bloquear el chat
+                newMsg.save().catch(e => console.error("Error al guardar mensaje:", e));
             }
         });
 
