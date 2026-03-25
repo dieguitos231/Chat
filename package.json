@@ -1,0 +1,20 @@
+{
+  "name": "actividad4",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "nodemon index.js",
+    "start": "node index.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "express": "^5.2.1",
+    "mongoose": "^9.3.2",
+    "nodemon": "^3.1.14",
+    "socket.io": "^4.8.3"
+  }
+}
