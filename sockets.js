@@ -2,17 +2,17 @@
 const Chat=require("./src/Models/Chat")
 module.exports = function (io) {
     let users = {};
-    io.on('connection',async socket => {
+    io.on('connection', async socket => {
         console.log("Nuevo usuario conectado");
-        let messages=await Chat.find({}).limit(20)
-        socket.emit('Cargando viejos mensajes',messages)
+
+        // Registramos los eventos primero para que el socket responda de inmediato
         socket.on('Nuevo usuario', (data, cb) => {
             if (data in users) {
                 cb(false);
             } else {
                 cb(true);
                 socket.nickname = data;
-                users[socket.nickname]=socket;
+                users[socket.nickname] = socket;
                 updateNickName();
                 io.sockets.emit('Nuevo mensaje', {
                     msg: 'se ha unido al chat',
@@ -33,16 +33,6 @@ module.exports = function (io) {
             });
         });
 
-        function updateNickName() {
-            io.sockets.emit('usernames', Object.keys(users));
-        }
-
-        // socket.on('Enviar mensaje', function (data,cb) {
-        //     io.sockets.emit('Nuevo mensaje', {
-        //         msg: data,
-        //         nick: socket.nickname
-        //     });
-        // });
         socket.on('Enviar mensaje', async function (data, cb) {
             let msg = data.trim();
             if (msg.substr(0, 3) === '/w ') {
@@ -57,7 +47,6 @@ module.exports = function (io) {
                             msg: whisperMsg,
                             nick: socket.nickname
                         });
-                        // Optional: Send feedback to sender
                         socket.emit('whisper', {
                             msg: whisperMsg,
                             nick: socket.nickname,
@@ -70,11 +59,16 @@ module.exports = function (io) {
                     cb('Error! Por favor ingresa tu mensaje después del nombre de usuario.');
                 }
             } else {
-                let newMsg=new Chat({
-                    msg:data,
-                    nick:socket.nickname
-                })
-                await newMsg.save();
+                try {
+                    let newMsg = new Chat({
+                        msg: data,
+                        nick: socket.nickname
+                    })
+                    await newMsg.save();
+                } catch (e) {
+                    console.error("Error al guardar mensaje:", e);
+                }
+                
                 io.sockets.emit('Nuevo mensaje', {
                     msg: data,
                     nick: socket.nickname
@@ -82,8 +76,16 @@ module.exports = function (io) {
             }
         });
 
+        function updateNickName() {
+            io.sockets.emit('usernames', Object.keys(users));
+        }
 
-
-
+        // Cargar mensajes después de registrar eventos para no bloquear
+        try {
+            let messages = await Chat.find({}).sort({created_at: -1}).limit(20);
+            socket.emit('Cargando viejos mensajes', messages.reverse());
+        } catch (err) {
+            console.error("Error al cargar mensajes:", err);
+        }
     });
 };
